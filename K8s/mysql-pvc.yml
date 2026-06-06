@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  namespace: floodify
+type: Opaque
+stringData:
+  MYSQL_ROOT_PASSWORD: rootroot      # ← change before production
+  MYSQL_DATABASE: floodify
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: floodify
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp3              # EKS default EBS storage class
+  resources:
+    requests:
+      storage: 2Gi

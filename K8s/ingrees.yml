@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: floodify-ingress
+  namespace: floodify
+  annotations:
+    # ── AWS Load Balancer Controller annotations ──────────────────────────────
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing       # public subnets
+    alb.ingress.kubernetes.io/target-type: ip               # required for Fargate; fine for EC2 too
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "3"
+
+    # Tag subnets properly or list them explicitly:
+    # alb.ingress.kubernetes.io/subnets: subnet-xxxx,subnet-yyyy
+spec:
+  rules:
+    - http:
+        paths:
+          # All /api/* calls go to the backend
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8080
+          # Everything else goes to the React frontend
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3000
