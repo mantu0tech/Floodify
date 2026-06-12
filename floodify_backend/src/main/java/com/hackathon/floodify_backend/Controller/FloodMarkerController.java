@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @CrossOrigin(origins = "*")
-@RequestMapping("/flood")
+@RequestMapping("/api/flood")
 public class FloodMarkerController {
 
     @Autowired

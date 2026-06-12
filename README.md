@@ -56,3 +56,9 @@ Future Enhancements
 •	Advanced flood prediction using historical data
 •	Integration with more weather APIs for enhanced forecasting
 
+
+deploy on the kubernetes 
+![
+](image.png)
+
+

@@ -61,7 +61,7 @@ eksctl create addon \
 
 
   run the mysql file first then 
-  
+
   kubectl apply -f 00-namespace.yaml
 kubectl apply -f 01-secrets.yaml
 kubectl apply -f 02-configmap.yaml
@@ -70,3 +70,28 @@ kubectl apply -f 04-backend.yaml
 kubectl apply -f 05-frontend.yaml
 kubectl apply -f 06-ingress.yaml
 ru in this sequece 
+
+verify everthing 
+kubectl get all -n floodify
+kubectl get pvc -n floodify
+kubectl get ingress -n floodify
+
+wait 2 to 3 mins for the URL link 
+
+kubectl get ingress floodify-ingress -n floodify -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+
+if loadbalancer is not displayed then run these commands or getting error then run this 
+83  kubectl describe sa aws-load-balancer-controller -n kube-system
+   84  curl -o iam_policy.json https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json
+   85  ls
+   86  cat iam_policy.json
+   87  aws iam create-policy   --policy-name AWSLoadBalancerControllerIAMPolicyV2   --policy-document file://iam_policy.json
+   88  aws iam attach-role-policy   --role-name eksctl-Floodify-eks-addon-iamserviceaccount-k-Role1-AfRez6xstvI1   --policy-arn arn:aws:iam::051826716700:policy/AWSLoadBalancerControllerIAMPolicyV2
+   89  aws iam attach-role-policy   --role-name eksctl-Floodify-eks-addon-iamserviceaccount-k-Role1-AfRez6xstvI1   --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+   90  kubectl get all  -n floodify
+   91  kubectl rollout restart deployment aws-load-balancer-controller   -n kube-system
+   92  kubectl logs -n kube-system deployment/aws-load-balancer-controller -f
+
+   go to aws and check your ELB and get its ds and paste it on aws 
+   
+
