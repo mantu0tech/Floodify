@@ -3,41 +3,31 @@ kind: Deployment
 metadata:
   name: frontend
   namespace: floodify
-
 spec:
   replicas: 1
-
   selector:
     matchLabels:
       app: frontend
-
   template:
     metadata:
       labels:
         app: frontend
-
     spec:
       containers:
         - name: frontend
           image: allenaira/floodify:frontend
-
           ports:
             - containerPort: 3000
-
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: frontend
   namespace: floodify
-
 spec:
   selector:
     app: frontend
-
   ports:
     - port: 80
       targetPort: 3000
-
   type: ClusterIP
-  #clusterIP: 
