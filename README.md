@@ -5,9 +5,9 @@ Floodify allows users to monitor flood-affected areas, report incidents, and fin
 - **Repo:** https://github.com/mantu0tech/Floodify.git
 - **Live App:** deployed on AWS EKS behind an Application Load Balancer
 
-![Floodify Homepage](<img width="998" height="516" alt="image" src="https://github.com/user-attachments/assets/959e3cb3-0588-4e00-adbe-996384ee85c7" />
-)
-![User Dashboard](<img width="1021" height="527" alt="image" src="https://github.com/user-attachments/assets/552e47a9-cb3e-4bbe-9683-b9a3d51261a2" />
+<img width="998" height="516" alt="image" src="https://github.com/user-attachments/assets/959e3cb3-0588-4e00-adbe-996384ee85c7" />
+
+(<img width="1021" height="527" alt="image" src="https://github.com/user-attachments/assets/552e47a9-cb3e-4bbe-9683-b9a3d51261a2" />
 )
 
 ---
