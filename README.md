@@ -5,16 +5,6 @@ Floodify allows users to monitor flood-affected areas, report incidents, and fin
 - **Repo:** https://github.com/mantu0tech/Floodify.git
 - **Live App:** deployed on AWS EKS behind an Application Load Balancer
 
-##Architecture 
-<img width="800" height="319" alt="image" src="https://github.com/user-attachments/assets/a58c4471-8c5a-42f6-a725-3d7bc39eadaa" />
-<img width="821" height="430" alt="image" src="https://github.com/user-attachments/assets/42ef81f9-b4ff-447f-96ff-72fb9870d68d" />
-
-
-<img width="998" height="516" alt="image" src="https://github.com/user-attachments/assets/959e3cb3-0588-4e00-adbe-996384ee85c7" />
-
-(<img width="1021" height="527" alt="image" src="https://github.com/user-attachments/assets/552e47a9-cb3e-4bbe-9683-b9a3d51261a2" />
-)
-
 ---
 
 ## Architecture
@@ -25,6 +15,16 @@ Infrastructure is provisioned with **Terraform**, the app runs on **AWS EKS**, a
 **Flow:** Terraform provisions the EKS cluster and VPC → the AWS Load Balancer Controller and EBS CSI driver are installed on the cluster → application manifests (namespace, secrets, configmap, MySQL, backend, frontend, ingress) are applied in order → the Ingress provisions an ALB automatically → Jenkins takes over from there for ongoing updates: it scans the repo, builds fresh frontend/backend images, pushes them to ECR, and rolls out the update to the running deployments.
 
 ---
+<img width="800" height="319" alt="image" src="https://github.com/user-attachments/assets/a58c4471-8c5a-42f6-a725-3d7bc39eadaa" />
+<img width="821" height="430" alt="image" src="https://github.com/user-attachments/assets/42ef81f9-b4ff-447f-96ff-72fb9870d68d" />
+
+
+<img width="998" height="516" alt="image" src="https://github.com/user-attachments/assets/959e3cb3-0588-4e00-adbe-996384ee85c7" />
+
+(<img width="1021" height="527" alt="image" src="https://github.com/user-attachments/assets/552e47a9-cb3e-4bbe-9683-b9a3d51261a2" />
+)
+
+
 
 ## Tech Stack
 
