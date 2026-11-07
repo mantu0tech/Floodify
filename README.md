@@ -1,341 +1,223 @@
-# Floodify — Real-time Flood Monitoring & Safety
+# Floodify – Real-Time Flood Monitoring & Safety Platform
 
-Floodify allows users to monitor flood-affected areas, report incidents, and find nearby shelters and hospitals. It helps people stay informed and stay safe, and helps authorities manage real-time flood situations effectively.
+## Project Overview
 
-- **Repo:** https://github.com/mantu0tech/Floodify.git
-- **Live App:** deployed on AWS EKS behind an Application Load Balancer
+Floodify is a flood monitoring and safety platform designed to help users monitor flood-affected areas, report incidents, and locate nearby shelters and hospitals.
 
----
+This project also demonstrates the deployment of a full-stack application on **Amazon Web Services (AWS)** using Amazon EC2 and Amazon RDS.
 
-## Architecture
+The application frontend and backend are hosted on an Ubuntu EC2 instance, while the MySQL database is hosted separately on Amazon RDS.
 
-Infrastructure is provisioned with **Terraform**, the app runs on **AWS EKS**, and **Jenkins** automates the build → push → deploy cycle on every change.
+## Technology Stack
 
-
-**Flow:** Terraform provisions the EKS cluster and VPC → the AWS Load Balancer Controller and EBS CSI driver are installed on the cluster → application manifests (namespace, secrets, configmap, MySQL, backend, frontend, ingress) are applied in order → the Ingress provisions an ALB automatically → Jenkins takes over from there for ongoing updates: it scans the repo, builds fresh frontend/backend images, pushes them to ECR, and rolls out the update to the running deployments.
-
----
-<img width="800" height="319" alt="image" src="https://github.com/user-attachments/assets/a58c4471-8c5a-42f6-a725-3d7bc39eadaa" />
-<img width="821" height="430" alt="image" src="https://github.com/user-attachments/assets/42ef81f9-b4ff-447f-96ff-72fb9870d68d" />
-
-
-<img width="998" height="516" alt="image" src="https://github.com/user-attachments/assets/959e3cb3-0588-4e00-adbe-996384ee85c7" />
-
-(<img width="1021" height="527" alt="image" src="https://github.com/user-attachments/assets/552e47a9-cb3e-4bbe-9683-b9a3d51261a2" />
-)
-
-
-
-## Tech Stack
-
-| Layer | Tool |
+| Layer | Technologies |
 |---|---|
-| Infrastructure as Code | Terraform |
-| Container Orchestration | Kubernetes (AWS EKS) |
-| Containers | Docker |
-| Ingress / Load Balancing | AWS Load Balancer Controller (ALB Ingress) |
-| Storage | Amazon EBS (via EBS CSI Driver) |
-| Database | MySQL (in-cluster) |
-| CI/CD | Jenkins |
-| Secret Scanning | Gitleaks |
-| Registry | Amazon ECR |
+| Frontend | React.js, JavaScript, HTML5, CSS3, Axios, React Router |
+| Backend | Java, Spring Boot, Maven |
+| Database | MySQL, Amazon RDS |
+| Cloud Infrastructure | AWS EC2, AWS VPC, AWS RDS |
+| Operating System | Ubuntu Server |
+| Tools | Git, GitHub, Docker, Jenkins |
 
----
+## Application Architecture
 
-## Prerequisites
-
-- AWS account
-- Windows + Terraform installed
-- AWS CLI configured on Windows (for Terraform)
-- An IAM role with admin access, to attach to the EC2 instance
-- An Ubuntu EC2 instance (m7 large or similar) to run the deployment from
-
----
-
-## 1. Launch the Server
-
-1. Launch an Ubuntu EC2 instance (m7 large).
-2. Attach the IAM role with admin access to the instance.
-3. Connect to the instance via SSH.
-4. Install all prerequisites listed in `install.sh` in the repo.
-
-Verify the IAM role is attached correctly:
-```bash
-aws sts get-caller-identity
+```text
+                  Users
+                    |
+                    v
+             React Frontend
+               (Port 3000)
+                    |
+                    v
+          Spring Boot Backend
+             (AWS EC2)
+                    |
+                    v
+             MySQL Database
+              (Amazon RDS)
 ```
 
-On your Windows machine, configure the AWS CLI so Terraform can authenticate:
-```bash
-aws configure
-```
+### Detailed AWS Architecture
 
----
+For a detailed view of the AWS infrastructure and application deployment flow, refer to the architecture documentation:
 
-## 2. Provision Infrastructure with Terraform
+[View AWS Architecture Diagram](docs/architecture/aws-architecture.md)
 
-1. Open `EKS.tf` in the `terraform/` folder.
-2. Copy the ARN of the IAM role you attached to the EC2 instance and paste it in on line 18.
-3. Run Terraform:
+### AWS Infrastructure
 
-```bash
-terraform init         # downloads modules (~2 min first time)
-terraform fmt           # formats code
-terraform validate      # checks for errors
-terraform plan           # review what will be created
-terraform apply          # type 'yes' — takes ~15 min
-```
+The application was deployed using the following AWS services:
 
-Grab a coffee — the EKS cluster takes about 15 minutes to come up.
+- **Amazon VPC:** Provides the networking environment for EC2 and RDS.
+- **Amazon EC2:** Hosts the React frontend and Spring Boot backend on an Ubuntu server.
+- **Amazon RDS:** Hosts the MySQL relational database.
+- **Security Groups:** Control network access and allow the EC2 instance to communicate with RDS.
 
----
+## AWS Deployment Implementation
 
-## 3. Connect to the Cluster
+The Floodify application was deployed on AWS using the following workflow.
 
-```bash
-aws eks update-kubeconfig --name Floodify-eks --region us-east-1
-kubectl get nodes
-```
+### Step 1: Create an AWS VPC
 
-**Getting a 443 error?** Your EC2 instance's security group needs to reach the cluster's control plane. Go to the EKS cluster's main security group and add an inbound rule allowing all traffic from your EC2 instance's security group.
+- Created a custom VPC for the application infrastructure.
+- Configured public and private subnets across two Availability Zones.
+- Configured route tables and an Internet Gateway.
+- Enabled DNS hostnames and DNS resolution.
 
----
+### Step 2: Create an Amazon RDS Database
 
-## 4. Install Cluster Add-ons
+- Created a MySQL database using Amazon RDS.
+- Configured the database username and password.
+- Waited until the database status became Available.
 
-Run the commands in `cmd.txt` (devops branch) one by one, in this order.
+### Step 3: Launch an Ubuntu EC2 Instance
 
-**Helm repo:**
-```bash
-helm repo add eks https://aws.github.io/eks-charts
-helm repo update
-```
+- Launched an Ubuntu EC2 instance.
+- Configured the instance within the created VPC.
+- Enabled a public IP address.
+- Configured SSH access.
+- Configured HTTP access as required for frontend access.
 
-**Get cluster VPC ID:**
-```bash
-aws eks describe-cluster --name Floodify-eks --region us-east-1 \
-  --query "cluster.resourcesVpcConfig.vpcId" --output text
-```
+### Step 4: Configure Security Groups
 
-**AWS Load Balancer Controller:**
-```bash
-curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.7.2/docs/install/iam_policy.json
+- Identified the security group associated with the RDS database.
+- Configured an inbound rule to allow MySQL traffic on port 3306.
+- Restricted database access to the EC2 security group.
 
-aws iam create-policy \
-  --policy-name AWSLoadBalancerControllerIAMPolicy \
-  --policy-document file://iam_policy.json
+### Step 5: Install Required Software on EC2
 
-eksctl utils associate-iam-oidc-provider --cluster Floodify-eks --region us-east-1 --approve
+Installed the required dependencies on the Ubuntu EC2 instance:
 
-eksctl create iamserviceaccount \
-  --cluster=Floodify-eks \
-  --namespace=kube-system \
-  --name=aws-load-balancer-controller \
-  --attach-policy-arn=arn:aws:iam::<your-account-id>:policy/AWSLoadBalancerControllerIAMPolicy \
-  --override-existing-serviceaccounts \
-  --approve \
-  --region us-east-1
-```
-This step takes a little while — it's creating the IAM service account behind the scenes.
+- Node.js
+- npm
+- OpenJDK 21
+- Maven
+- MySQL client
+
+### Step 6: Clone the Application Repository
+
+Cloned the Floodify GitHub repository and switched to the required deployment branch.
 
 ```bash
-helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
-  -n kube-system \
-  --set clusterName=Floodify-eks \
-  --set serviceAccount.create=false \
-  --set serviceAccount.name=aws-load-balancer-controller \
-  --set region=us-east-1 \
-  --set vpcId=<your-vpc-id>
-
-kubectl get deployment -n kube-system aws-load-balancer-controller
+git clone https://github.com/mantu0tech/Floodify
+cd Floodify/
+git checkout design
 ```
 
-**EBS CSI Driver (for MySQL's persistent storage):**
-```bash
-eksctl create iamserviceaccount \
-  --name ebs-csi-controller-sa \
-  --namespace kube-system \
-  --cluster Floodify-eks \
-  --region us-east-1 \
-  --attach-policy-arn arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy \
-  --approve \
-  --role-only \
-  --role-name AmazonEKS_EBS_CSI_DriverRole
+### Step 7: Connect EC2 to Amazon RDS
 
-eksctl create addon \
-  --name aws-ebs-csi-driver \
-  --cluster Floodify-eks \
-  --region us-east-1 \
-  --service-account-role-arn arn:aws:iam::<your-account-id>:role/AmazonEKS_EBS_CSI_DriverRole \
-  --force
+- Verified that the RDS database was Available.
+- Used the RDS endpoint, port 3306, database username, and password to establish a MySQL connection from EC2.
+- Verified successful database connectivity.
+
+### Step 8: Create and Import the Database
+
+- Connected to the MySQL database hosted on RDS.
+- Created the required database.
+- Prepared the database structure and data required by the application.
+
+### Step 9: Configure Spring Boot Database Connectivity
+
+Updated the Spring Boot database configuration in:
+
+```text
+floodify_backend/src/main/resources/application.properties
 ```
 
----
+Configured the MySQL connection using the Amazon RDS endpoint, database name, username, and password.
 
-## 5. Deploy the Application
+### Step 10: Build and Run the Spring Boot Backend
 
-Apply the manifests **in this exact sequence** — MySQL needs to come up before backend/frontend:
+Navigated to the backend directory and built the application using Maven.
 
 ```bash
-kubectl apply -f 00-namespace.yaml
-kubectl apply -f 01-secrets.yaml
-kubectl apply -f 02-configmap.yaml
-kubectl apply -f 03-mysql.yaml
-kubectl apply -f 04-backend.yaml
-kubectl apply -f 05-frontend.yaml
-kubectl apply -f 06-ingress.yaml
+cd floodify_backend/
+mvn clean install
 ```
 
-**Verify everything came up:**
-```bash
-kubectl get all -n floodify
-kubectl get pvc -n floodify
-kubectl get ingress -n floodify
-```
-
-Wait 2–3 minutes for the ALB to provision, then get the live URL:
-```bash
-kubectl get ingress floodify-ingress -n floodify -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
-```
-
----
-
-## Troubleshooting
-
-**Load balancer hostname not showing up / Ingress stuck?** Check the controller and re-attach permissions if needed:
+Started the generated Spring Boot JAR file:
 
 ```bash
-kubectl describe sa aws-load-balancer-controller -n kube-system
-curl -o iam_policy.json https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json
-cat iam_policy.json
-
-aws iam create-policy \
-  --policy-name AWSLoadBalancerControllerIAMPolicyV2 \
-  --policy-document file://iam_policy.json
-
-aws iam attach-role-policy \
-  --role-name <your-eksctl-generated-role-name> \
-  --policy-arn arn:aws:iam::<your-account-id>:policy/AWSLoadBalancerControllerIAMPolicyV2
-
-kubectl get all -n floodify
-kubectl rollout restart deployment aws-load-balancer-controller -n kube-system
-kubectl logs -n kube-system deployment/aws-load-balancer-controller -f
+java -jar target/floodify_backend-0.0.1-SNAPSHOT.jar
 ```
 
-If it's still not resolving, go to the AWS Console → EC2 → Load Balancers, find the ELB that was created, and confirm its DNS name matches what you expect.
+Verified that the backend application started successfully.
 
-**Get the frontend's public URL directly (bypassing Ingress) if needed:**
+### Step 11: Run and Verify the React Frontend
+
+Opened another terminal session on the EC2 instance.
+
+Started the React frontend:
+
 ```bash
-kubectl get svc frontend -n floodify
-# copy the EXTERNAL-IP and open it in your browser
+npm start
 ```
 
-**Check that storage is working** — you should see your EBS volume backing the MySQL PVC, and your data should persist across pod restarts:
+Configured the EC2 security group to allow inbound traffic on port 3000.
+
+Accessed the application using the EC2 public IPv4 address:
+
+```text
+http://<EC2-PUBLIC-IP>:3000/
+```
+
+Verified that the frontend was accessible and could communicate with the backend.
+
+### Step 12: AWS Resource Cleanup
+
+After completing the deployment practice, stopped or deleted AWS resources that were no longer required to avoid unnecessary charges.
+
+## Deployment Documentation
+
+The detailed deployment guide is available here:
+
+[**Floodify AWS EC2 and RDS Deployment Guide**](docs/deployment/Floodify-AWS-EC2-RDS-Deployment.pdf)
+
+The guide includes AWS console configuration, deployment commands, database connectivity steps, and screenshots.
+
+## Running the Project Locally
+
+### Frontend
+
 ```bash
-kubectl get pvc -n floodify
+npm install
+npm start
 ```
 
----
+### Backend
 
-## CI/CD — Jenkins
-
-Once the cluster is up and the app is deployed manually the first time, Jenkins takes over for every future update — no more manual `kubectl apply` needed.
-
-**What the pipeline does:**
-1. Checks out the latest code
-2. Scans the repo for leaked secrets with **Gitleaks**
-3. Builds fresh Docker images for `frontend` and `backend`
-4. Pushes both images to **Amazon ECR**
-5. Updates the running `frontend` and `backend` deployments in EKS with the new image tags and waits for rollout to complete
-
-**Jenkinsfile:**
-```groovy
-pipeline {
-    agent any
-
-    environment {
-        AWS_REGION     = "us-east-1"
-        AWS_ACCOUNT_ID = "<your-account-id>"
-        NAMESPACE      = "floodify"
-        IMAGE_TAG      = "${BUILD_NUMBER}"
-
-        BACKEND_REPO   = "floodify-backend"
-        FRONTEND_REPO  = "floodify-frontend"
-        BACKEND_URI    = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${BACKEND_REPO}"
-        FRONTEND_URI   = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${FRONTEND_REPO}"
-    }
-
-    stages {
-
-        stage('Checkout Code') {
-            steps {
-                git branch: 'main',
-                    url: 'https://github.com/mantu0tech/Floodify.git'
-            }
-        }
-
-        stage('Gitleaks - Scan Repo for Leaked Secrets') {
-            steps {
-                sh '''
-                docker run --rm -v "$PWD":/repo zricethezav/gitleaks:latest \
-                    detect --source=/repo --no-git -v --exit-code 1
-                '''
-            }
-        }
-
-        stage('Build Docker Images') {
-            steps {
-                sh '''
-                docker build -t ${BACKEND_REPO}:${IMAGE_TAG} -f floodify_backend/Dockerfile floodify_backend
-                docker build -t ${FRONTEND_REPO}:${IMAGE_TAG} -f Dockerfile .
-                '''
-            }
-        }
-
-        stage('Push Images to ECR') {
-            steps {
-                sh '''
-                aws ecr get-login-password --region ${AWS_REGION} | \
-                docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
-
-                docker tag ${BACKEND_REPO}:${IMAGE_TAG} ${BACKEND_URI}:${IMAGE_TAG}
-                docker tag ${FRONTEND_REPO}:${IMAGE_TAG} ${FRONTEND_URI}:${IMAGE_TAG}
-
-                docker push ${BACKEND_URI}:${IMAGE_TAG}
-                docker push ${FRONTEND_URI}:${IMAGE_TAG}
-                '''
-            }
-        }
-
-        stage('Deploy to EKS') {
-            steps {
-                sh '''
-                kubectl set image deployment/backend backend=${BACKEND_URI}:${IMAGE_TAG} -n ${NAMESPACE}
-                kubectl set image deployment/frontend frontend=${FRONTEND_URI}:${IMAGE_TAG} -n ${NAMESPACE}
-
-                kubectl rollout status deployment/backend -n ${NAMESPACE}
-                kubectl rollout status deployment/frontend -n ${NAMESPACE}
-                '''
-            }
-        }
-    }
-
-    post {
-        success {
-            echo 'Deployment Successful'
-        }
-        failure {
-            echo 'Deployment Failed'
-        }
-    }
-}
+```bash
+cd floodify_backend
+mvn clean install
 ```
 
-> **Note:** This assumes Jenkins runs on an EC2 instance with an IAM role attached (the same admin role from the prerequisites step), and that `aws eks update-kubeconfig` has already been run once on that server so `kubectl` is pre-configured — no AWS keys or kubeconfig setup needed inside the pipeline itself. Adjust the `docker build` paths/deployment names above to match your actual folder structure and Kubernetes manifest names if they differ (e.g. `floodify_backend`, `public`, `src`).
+Run the generated Spring Boot JAR using the appropriate application configuration.
 
----
+Ensure that the required MySQL database configuration is provided before starting the backend.
 
-## Notes
+## Repository Structure
 
-- Namespace for the app is `floodify`.
-- MySQL data is persisted via an EBS-backed PersistentVolumeClaim, so it survives pod restarts.
-- Always run `kubectl apply -f 00-namespace.yaml` through `06-ingress.yaml` in order the first time — backend depends on MySQL, and ingress depends on both services existing.
+```text
+Floodify/
+│
+├── src/                         # React frontend source code
+├── public/                      # Static frontend assets
+│
+├── floodify_backend/             # Spring Boot backend
+│
+├── docs/
+│   ├── deployment/
+│   │   └── Floodify-AWS-EC2-RDS-Deployment.pdf
+│   │
+│   └── architecture/
+│       └── aws-architecture.md
+│
+├── package.json
+├── README.md
+└── .gitignore
+```
+
+## Security Considerations
+
+- Do not commit AWS access keys, private keys, or database passwords.
+- Keep database credentials outside publicly accessible source code.
+- Restrict RDS inbound access to the required
